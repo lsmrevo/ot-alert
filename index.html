@@ -2,38 +2,142 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>초과근무 알리미 - 모바일 다중 알람 일괄 등록</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b1120">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>초과근무 알리미 모바일</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif; }
-  body { background: #0b1120; color: #f8fafc; padding: 18px 16px 40px; min-height: 100vh; }
-  .card { background: #131c31; border: 1px solid #1e293b; border-radius: 16px; padding: 18px; margin-bottom: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
-  .badge { display: inline-block; background: #1e3a8a; color: #93c5fd; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; margin-bottom: 8px; }
-  h1 { font-size: 20px; font-weight: 800; margin-bottom: 6px; color: #ffffff; }
-  .desc { font-size: 13px; color: #94a3b8; line-height: 1.5; }
-  .slot-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 14px 0; }
-  .slot-item { display: flex; align-items: center; gap: 8px; background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; font-size: 15px; font-weight: 700; color: #60a5fa; cursor: pointer; }
-  .slot-item input { width: 18px; height: 18px; accent-color: #2563eb; }
-  .btn-primary { display: block; width: 100%; background: #2563eb; color: #ffffff; border: 1px solid #3b82f6; border-radius: 12px; padding: 15px 14px; font-size: 16px; font-weight: 800; text-align: center; cursor: pointer; margin-bottom: 10px; text-decoration: none; }
-  .btn-primary:active { background: #1d4ed8; }
-  .btn-secondary { display: block; width: 100%; background: #064e3b; color: #34d399; border: 1px solid #059669; border-radius: 12px; padding: 13px 14px; font-size: 14px; font-weight: 700; text-align: center; cursor: pointer; text-decoration: none; }
-  .guide-box { background: #0f172a; border: 1px dashed #334155; border-radius: 10px; padding: 12px; font-size: 12px; color: #cbd5e1; line-height: 1.6; margin-top: 12px; }
+  html, body {
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    background: #0b1120;
+    color: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 16px 14px 36px;
+    box-sizing: border-box;
+  }
+  .card {
+    background: #131c31;
+    border: 1px solid #1e293b;
+    border-radius: 18px;
+    padding: 20px 16px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+  }
+  .badge {
+    display: inline-block;
+    background: #1e3a8a;
+    color: #93c5fd;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0 0 8px 0;
+    color: #ffffff;
+    letter-spacing: -0.3px;
+  }
+  .desc {
+    font-size: 15px;
+    color: #cbd5e1;
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .slot-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin: 14px 0 18px;
+  }
+  .slot-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #0f172a;
+    border: 1.5px solid #334155;
+    border-radius: 12px;
+    padding: 13px 10px;
+    font-size: 17px;
+    font-weight: 800;
+    color: #60a5fa;
+    cursor: pointer;
+    user-select: none;
+  }
+  .slot-item input {
+    width: 22px;
+    height: 22px;
+    accent-color: #2563eb;
+    margin: 0;
+  }
+  .btn-primary {
+    display: block;
+    width: 100%;
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 14px;
+    padding: 17px 14px;
+    font-size: 17px;
+    font-weight: 800;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 14px rgba(37,99,235,0.4);
+  }
+  .btn-secondary {
+    display: block;
+    width: 100%;
+    background: #064e3b;
+    color: #34d399;
+    border: 1px solid #059669;
+    border-radius: 14px;
+    padding: 15px 14px;
+    font-size: 15px;
+    font-weight: 800;
+    text-align: center;
+    cursor: pointer;
+  }
+  .guide-box {
+    background: #0f172a;
+    border: 1px dashed #334155;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 14px;
+    color: #cbd5e1;
+    line-height: 1.65;
+    margin-top: 14px;
+  }
   .guide-box b { color: #38bdf8; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <span class="badge" id="dateBadge">📅 오늘 초과근무 알림</span>
-    <h1>🔔 모바일 다중 알람 일괄 등록</h1>
-    <p class="desc">아래 버튼을 누르면 선택된 <b id="countText" style="color:#60a5fa;">0개</b> 시간대의 초과근무 확인 알람이 스마트폰 캘린더에 <b>한 번에 모두 등록</b>됩니다.</p>
-    <div class="slot-list" id="slotContainer"></div>
-    <button class="btn-primary" onclick="downloadIcs(false)">📥 전체 알람 한 번에 등록하기 (정각 알림)</button>
-    <button class="btn-secondary" onclick="downloadIcs(true)">📥 (+10분 자동보정) 10분전 기본알림 기기용 등록</button>
-    <div class="guide-box">
-      💡 <b>1초 등록 방법</b><br>
-      1. 위 파란색 버튼을 누릅니다.<br>
-      2. 화면 상단/하단에 뜨는 다운로드 파일(<b>.ics</b>)의 <b>[열기]</b>를 누릅니다.<br>
-      3. 캘린더 화면에서 <b>[모두 추가 / 저장]</b>을 누르면 전체 알람이 한꺼번에 등록됩니다!
+  <div class="wrap">
+    <div class="card">
+      <span class="badge" id="dateBadge">📅 오늘 초과근무 알림</span>
+      <h1>🔔 모바일 다중 알람 일괄 등록</h1>
+      <p class="desc">선택된 <b id="countText" style="color:#60a5fa;">10개</b> 시간대의 초과근무 확인 알람을 스마트폰 캘린더에 <b>한 번에 모두 등록</b>합니다.</p>
+      <div class="slot-list" id="slotContainer"></div>
+      <button class="btn-primary" onclick="downloadIcs(true)">📥 10개 알람 한꺼번에 등록하기 (권장)</button>
+      <button class="btn-secondary" onclick="downloadIcs(false)">📥 정각(PT0S) 기준 .ics 파일로 받기</button>
+      <div class="guide-box">
+        💡 <b>1초 일괄 등록 방법</b><br>
+        1. 위 파란색 버튼을 터치합니다.<br>
+        2. 다운로드된 파일(<b>.ics</b>)의 <b>[열기]</b>를 누릅니다.<br>
+        3. 캘린더 화면에서 <b>[모두 추가 / 저장]</b>을 누르면 10개 알람이 한 번에 등록됩니다!
+      </div>
     </div>
   </div>
 <script>
