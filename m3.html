@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b1120">
+<title>초과근무 알리미 모바일 일괄 등록</title>
+<style>
+  html, body {
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    background: #0b1120;
+    color: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 16px 14px 36px;
+    box-sizing: border-box;
+  }
+  .card {
+    background: #131c31;
+    border: 1px solid #1e293b;
+    border-radius: 18px;
+    padding: 20px 16px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+  }
+  .badge {
+    display: inline-block;
+    background: #1e3a8a;
+    color: #93c5fd;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-size: 21px;
+    font-weight: 800;
+    margin: 0 0 8px 0;
+    color: #ffffff;
+    letter-spacing: -0.3px;
+  }
+  .desc {
+    font-size: 14px;
+    color: #cbd5e1;
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .slot-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin: 14px 0 18px;
+  }
+  .slot-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #0f172a;
+    border: 1.5px solid #334155;
+    border-radius: 12px;
+    padding: 12px 10px;
+    font-size: 17px;
+    font-weight: 800;
+    color: #60a5fa;
+    cursor: pointer;
+    user-select: none;
+  }
+  .slot-item input {
+    width: 22px;
+    height: 22px;
+    accent-color: #2563eb;
+    margin: 0;
+  }
+  .btn-primary {
+    display: block;
+    width: 100%;
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 14px;
+    padding: 16px 14px;
+    font-size: 16px;
+    font-weight: 800;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 14px rgba(37,99,235,0.4);
+  }
+  .btn-secondary {
+    display: block;
+    width: 100%;
+    background: #064e3b;
+    color: #34d399;
+    border: 1px solid #059669;
+    border-radius: 14px;
+    padding: 15px 14px;
+    font-size: 15px;
+    font-weight: 800;
+    text-align: center;
+    cursor: pointer;
+  }
+  .guide-box {
+    background: #0f172a;
+    border: 1px dashed #334155;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 13px;
+    color: #cbd5e1;
+    line-height: 1.65;
+    margin-top: 14px;
+  }
+  .guide-box b { color: #38bdf8; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <span class="badge" id="dateBadge">📅 오늘 초과근무 알림</span>
+      <h1>🔔 삼성 기본 캘린더 / 구글 캘린더 일괄 등록</h1>
+      <p class="desc">선택된 <b id="countText" style="color:#60a5fa;">6개</b> 시간대의 초과근무 확인 알람을 스마트폰 기본 캘린더에 <b>한 번에 모두 등록</b>합니다.</p>
+      <div class="slot-list" id="slotContainer"></div>
+      <button class="btn-primary" onclick="downloadSamsungIcs(true)">📥 [방식 1] 삼성 기본캘린더 호환 일괄 등록 (-PT10M 표준)</button>
+      <button class="btn-secondary" onclick="downloadSamsungIcs(false)">📥 [방식 2] 정각(PT0M) 일괄 등록</button>
+      <div class="guide-box">
+        💡 <b>삼성 기본 캘린더 호환 패치 완료</b><br>
+        • 삼성 캘린더 일괄 등록기가 거부하던 <code>-PT0M</code>(음수 0분) 및 이모지/75바이트 초과 라인을 제거하고, <b>삼성 캘린더 순정 규격(<code>TZID=Asia/Seoul</code> + <code>TRIGGER:-PT10M</code>)</b>으로 생성합니다.
+      </div>
+    </div>
+  </div>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const now = new Date();
+  const defaultDate = now.getFullYear().toString() +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0');
+  const dateStr = (params.get('d') || defaultDate).replace(/[^0-9]/g, '');
+  const rawTimes = params.get('t') || '1805,1905,2005,2105,2205,2305';
+  const sysName = params.get('sys') || '인사랑';
+  const timeList = rawTimes.split(',').map(s => s.trim()).filter(s => /^\d{4}$/.test(s));
+
+  const y = dateStr.slice(0, 4), m = dateStr.slice(4, 6), d = dateStr.slice(6, 8);
+  document.getElementById('dateBadge').textContent = `📅 ${y}-${m}-${d} (${sysName})`;
+
+  const container = document.getElementById('slotContainer');
+  function updateCount() {
+    const checked = container.querySelectorAll('input[type=checkbox]:checked').length;
+    document.getElementById('countText').textContent = `${checked}개`;
+  }
+
+  timeList.forEach((hhmm) => {
+    const hh = hhmm.slice(0, 2), mm = hhmm.slice(2, 4);
+    const label = document.createElement('label');
+    label.className = 'slot-item';
+    label.innerHTML = `<input type="checkbox" value="${hhmm}" checked onchange="updateCount()"> <span>⏰ ${hh}:${mm}</span>`;
+    container.appendChild(label);
+  });
+  updateCount();
+
+  function formatLocalIcs(dateObj) {
+    const yy = dateObj.getFullYear();
+    const mo = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const dd = String(dateObj.getDate()).padStart(2, '0');
+    const hh = String(dateObj.getHours()).padStart(2, '0');
+    const mi = String(dateObj.getMinutes()).padStart(2, '0');
+    return `${yy}${mo}${dd}T${hh}${mi}00`;
+  }
+
+  function toUtcIcsString(dateObj) {
+    const yy = dateObj.getUTCFullYear();
+    const mo = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(dateObj.getUTCDate()).padStart(2, '0');
+    const hh = String(dateObj.getUTCHours()).padStart(2, '0');
+    const mi = String(dateObj.getUTCMinutes()).padStart(2, '0');
+    const ss = String(dateObj.getUTCSeconds()).padStart(2, '0');
+    return `${yy}${mo}${dd}T${hh}${mi}${ss}Z`;
+  }
+
+  function downloadSamsungIcs(usePlus10Offset) {
+    const checkedInputs = Array.from(container.querySelectorAll('input[type=checkbox]:checked'));
+    if (checkedInputs.length === 0) {
+      alert('최소 1개 이상의 알람 시간을 선택해 주세요.');
+      return;
+    }
+    const dtStamp = toUtcIcsString(new Date());
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'PRODID:-//Samsung Electronics//Calendar//EN',
+      'VERSION:2.0',
+      'BEGIN:VTIMEZONE',
+      'TZID:Asia/Seoul',
+      'BEGIN:STANDARD',
+      'TZOFFSETFROM:+0900',
+      'TZOFFSETTO:+0900',
+      'TZNAME:KST',
+      'DTSTART:19700101T000000',
+      'END:STANDARD',
+      'END:VTIMEZONE'
+    ];
+    const baseY = parseInt(y, 10), baseM = parseInt(m, 10), baseD = parseInt(d, 10);
+    const firstHour = parseInt(checkedInputs[0].value.slice(0, 2), 10);
+
+    checkedInputs.forEach((inp, idx) => {
+      const hh = parseInt(inp.value.slice(0, 2), 10);
+      const mm = parseInt(inp.value.slice(2, 4), 10);
+      const dayOffset = (hh < firstHour && firstHour >= 18) ? 1 : 0;
+      const startOffsetMins = usePlus10Offset ? 10 : 0;
+
+      const startDt = new Date(baseY, baseM - 1, baseD + dayOffset, hh, mm + startOffsetMins, 0);
+      const endDt = new Date(baseY, baseM - 1, baseD + dayOffset, hh, mm + startOffsetMins + 10, 0);
+
+      const dtStartLocal = formatLocalIcs(startDt);
+      const dtEndLocal = formatLocalIcs(endDt);
+      const timeLabel = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+      const uid = `sot-${dateStr}-${inp.value}-${idx}@samsung.com`;
+
+      lines.push('BEGIN:VEVENT');
+      lines.push(`UID:${uid}`);
+      lines.push(`SUMMARY:[${timeLabel}] ${sysName} 초과근무 확인`);
+      lines.push(`DTSTAMP:${dtStamp}`);
+      lines.push(`DTSTART;TZID=Asia/Seoul:${dtStartLocal}`);
+      lines.push(`DTEND;TZID=Asia/Seoul:${dtEndLocal}`);
+      lines.push(`DESCRIPTION:${sysName} 초과근무 확인 (${timeLabel})`);
+      lines.push('STATUS:CONFIRMED');
+      lines.push('CLASS:PUBLIC');
+      lines.push('TRANSP:OPAQUE');
+      lines.push('BEGIN:VALARM');
+      lines.push('ACTION:DISPLAY');
+      lines.push('DESCRIPTION:Reminder');
+      lines.push(usePlus10Offset ? 'TRIGGER:-PT10M' : 'TRIGGER:PT0M');
+      lines.push('END:VALARM');
+      lines.push('END:VEVENT');
+    });
+    lines.push('END:VCALENDAR');
+
+    const icsData = lines.join('\r\n') + '\r\n';
+    const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `samsung_ot_${dateStr}_${checkedInputs.length}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }
+</script>
+</body>
+</html>
