@@ -5,8 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0b1120">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>초과근무 알리미 모바일</title>
+<title>초과근무 알리미 모바일 일괄 등록</title>
 <style>
   html, body {
     width: 100%;
@@ -130,13 +129,13 @@
       <h1>🔔 모바일 다중 알람 일괄 등록</h1>
       <p class="desc">선택된 <b id="countText" style="color:#60a5fa;">10개</b> 시간대의 초과근무 확인 알람을 스마트폰 캘린더에 <b>한 번에 모두 등록</b>합니다.</p>
       <div class="slot-list" id="slotContainer"></div>
-      <button class="btn-primary" onclick="downloadIcs(true)">📥 10개 알람 한꺼번에 등록하기 (권장)</button>
-      <button class="btn-secondary" onclick="downloadIcs(false)">📥 정각(PT0S) 기준 .ics 파일로 받기</button>
+      <button class="btn-primary" onclick="downloadIcs(false)">📥 전체 알람 한꺼번에 등록하기 (정각 알림)</button>
+      <button class="btn-secondary" onclick="downloadIcs(true)">📥 (+10분 자동보정) 10분전 기본알림 기기용</button>
       <div class="guide-box">
         💡 <b>1초 일괄 등록 방법</b><br>
         1. 위 파란색 버튼을 터치합니다.<br>
         2. 다운로드된 파일(<b>.ics</b>)의 <b>[열기]</b>를 누릅니다.<br>
-        3. 캘린더 화면에서 <b>[모두 추가 / 저장]</b>을 누르면 10개 알람이 한 번에 등록됩니다!
+        3. 캘린더 화면에서 <b>[모두 추가 / 저장]</b>을 누르면 전체 알람이 한꺼번에 저장됩니다!
       </div>
     </div>
   </div>
@@ -169,14 +168,14 @@
   });
   updateCount();
 
-  function addMinutes(year, month, day, hour, minute, addMins) {
-    const dt = new Date(year, month - 1, day, hour, minute + addMins, 0);
-    const yy = dt.getFullYear();
-    const mo = String(dt.getMonth() + 1).padStart(2, '0');
-    const dd = String(dt.getDate()).padStart(2, '0');
-    const hh = String(dt.getHours()).padStart(2, '0');
-    const mi = String(dt.getMinutes()).padStart(2, '0');
-    return `${yy}${mo}${dd}T${hh}${mi}00`;
+  function toUtcIcsString(dateObj) {
+    const yy = dateObj.getUTCFullYear();
+    const mo = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(dateObj.getUTCDate()).padStart(2, '0');
+    const hh = String(dateObj.getUTCHours()).padStart(2, '0');
+    const mi = String(dateObj.getUTCMinutes()).padStart(2, '0');
+    const ss = String(dateObj.getUTCSeconds()).padStart(2, '0');
+    return `${yy}${mo}${dd}T${hh}${mi}${ss}Z`;
   }
 
   function downloadIcs(usePlus10Offset) {
@@ -185,12 +184,12 @@
       alert('최소 1개 이상의 알람 시간을 선택해 주세요.');
       return;
     }
+    const dtStamp = toUtcIcsString(new Date());
     const lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//SeoulOTAlert//MobileBatchAlarm//KO',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH'
+      'CALSCALE:GREGORIAN'
     ];
     const baseY = parseInt(y, 10), baseM = parseInt(m, 10), baseD = parseInt(d, 10);
     const firstHour = parseInt(checkedInputs[0].value.slice(0, 2), 10);
@@ -200,32 +199,40 @@
       const mm = parseInt(inp.value.slice(2, 4), 10);
       const dayOffset = (hh < firstHour && firstHour >= 18) ? 1 : 0;
       const startOffsetMins = usePlus10Offset ? 10 : 0;
-      const dtStart = addMinutes(baseY, baseM, baseD + dayOffset, hh, mm, startOffsetMins);
-      const dtEnd = addMinutes(baseY, baseM, baseD + dayOffset, hh, mm, startOffsetMins + 10);
+
+      const startDt = new Date(baseY, baseM - 1, baseD + dayOffset, hh, mm + startOffsetMins, 0);
+      const endDt = new Date(baseY, baseM - 1, baseD + dayOffset, hh, mm + startOffsetMins + 10, 0);
+
+      const dtStartUtc = toUtcIcsString(startDt);
+      const dtEndUtc = toUtcIcsString(endDt);
       const timeLabel = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-      const uid = `seoul-ot-${dateStr}-${inp.value}-${idx}-${Date.now()}@ot-alert`;
+      const uid = `seoulot-${dateStr}-${inp.value}-${idx}-${Date.now()}@seoulotalert.local`;
 
       lines.push('BEGIN:VEVENT');
       lines.push(`UID:${uid}`);
-      lines.push(`SUMMARY:🔔 [${timeLabel} 알림] ${sysName} 초과근무 확인`);
+      lines.push(`DTSTAMP:${dtStamp}`);
+      lines.push(`DTSTART:${dtStartUtc}`);
+      lines.push(`DTEND:${dtEndUtc}`);
+      lines.push(`SUMMARY:[${timeLabel} 알림] ${sysName} 초과근무 확인`);
       lines.push(`DESCRIPTION:${sysName} 초과근무기록 확인 버튼을 눌러주세요. (${timeLabel})`);
-      lines.push(`DTSTART:${dtStart}`);
-      lines.push(`DTEND:${dtEnd}`);
+      lines.push('STATUS:CONFIRMED');
+      lines.push('SEQUENCE:0');
+      lines.push('TRANSP:OPAQUE');
       lines.push('BEGIN:VALARM');
       lines.push('ACTION:DISPLAY');
-      lines.push(`DESCRIPTION:🔔 [${timeLabel}] ${sysName} 초과근무 확인 시간입니다!`);
-      lines.push(usePlus10Offset ? 'TRIGGER:-PT10M' : 'TRIGGER:PT0S');
+      lines.push(`DESCRIPTION:[${timeLabel}] ${sysName} 초과근무 확인 시간입니다!`);
+      lines.push(usePlus10Offset ? 'TRIGGER:-PT10M' : 'TRIGGER:-PT0M');
       lines.push('END:VALARM');
       lines.push('END:VEVENT');
     });
     lines.push('END:VCALENDAR');
 
-    const icsData = lines.join('\r\n');
+    const icsData = lines.join('\r\n') + '\r\n';
     const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `초과근무알림_${dateStr}_${checkedInputs.length}건.ics`;
+    a.download = `ot_alarm_${dateStr}_${checkedInputs.length}.ics`;
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
