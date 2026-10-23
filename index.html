@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>초과근무 알리미 - 모바일 다중 알람 일괄 등록</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif; }
+  body { background: #0b1120; color: #f8fafc; padding: 18px 16px 40px; min-height: 100vh; }
+  .card { background: #131c31; border: 1px solid #1e293b; border-radius: 16px; padding: 18px; margin-bottom: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
+  .badge { display: inline-block; background: #1e3a8a; color: #93c5fd; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; margin-bottom: 8px; }
+  h1 { font-size: 20px; font-weight: 800; margin-bottom: 6px; color: #ffffff; }
+  .desc { font-size: 13px; color: #94a3b8; line-height: 1.5; }
+  .slot-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 14px 0; }
+  .slot-item { display: flex; align-items: center; gap: 8px; background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; font-size: 15px; font-weight: 700; color: #60a5fa; cursor: pointer; }
+  .slot-item input { width: 18px; height: 18px; accent-color: #2563eb; }
+  .btn-primary { display: block; width: 100%; background: #2563eb; color: #ffffff; border: 1px solid #3b82f6; border-radius: 12px; padding: 15px 14px; font-size: 16px; font-weight: 800; text-align: center; cursor: pointer; margin-bottom: 10px; text-decoration: none; }
+  .btn-primary:active { background: #1d4ed8; }
+  .btn-secondary { display: block; width: 100%; background: #064e3b; color: #34d399; border: 1px solid #059669; border-radius: 12px; padding: 13px 14px; font-size: 14px; font-weight: 700; text-align: center; cursor: pointer; text-decoration: none; }
+  .guide-box { background: #0f172a; border: 1px dashed #334155; border-radius: 10px; padding: 12px; font-size: 12px; color: #cbd5e1; line-height: 1.6; margin-top: 12px; }
+  .guide-box b { color: #38bdf8; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <span class="badge" id="dateBadge">📅 오늘 초과근무 알림</span>
+    <h1>🔔 모바일 다중 알람 일괄 등록</h1>
+    <p class="desc">아래 버튼을 누르면 선택된 <b id="countText" style="color:#60a5fa;">0개</b> 시간대의 초과근무 확인 알람이 스마트폰 캘린더에 <b>한 번에 모두 등록</b>됩니다.</p>
+    <div class="slot-list" id="slotContainer"></div>
+    <button class="btn-primary" onclick="downloadIcs(false)">📥 전체 알람 한 번에 등록하기 (정각 알림)</button>
+    <button class="btn-secondary" onclick="downloadIcs(true)">📥 (+10분 자동보정) 10분전 기본알림 기기용 등록</button>
+    <div class="guide-box">
+      💡 <b>1초 등록 방법</b><br>
+      1. 위 파란색 버튼을 누릅니다.<br>
+      2. 화면 상단/하단에 뜨는 다운로드 파일(<b>.ics</b>)의 <b>[열기]</b>를 누릅니다.<br>
+      3. 캘린더 화면에서 <b>[모두 추가 / 저장]</b>을 누르면 전체 알람이 한꺼번에 등록됩니다!
+    </div>
+  </div>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const now = new Date();
+  const defaultDate = now.getFullYear().toString() +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0');
+  const dateStr = (params.get('d') || defaultDate).replace(/[^0-9]/g, '');
+  const rawTimes = params.get('t') || '1805,1905,2005,2105,2205,2305,0005,0105,0205,0305';
+  const sysName = params.get('sys') || '인사랑';
+  const timeList = rawTimes.split(',').map(s => s.trim()).filter(s => /^\d{4}$/.test(s));
+
+  const y = dateStr.slice(0, 4), m = dateStr.slice(4, 6), d = dateStr.slice(6, 8);
+  document.getElementById('dateBadge').textContent = `📅 ${y}-${m}-${d} (${sysName})`;
+
+  const container = document.getElementById('slotContainer');
+  function updateCount() {
+    const checked = container.querySelectorAll('input[type=checkbox]:checked').length;
+    document.getElementById('countText').textContent = `${checked}개`;
+  }
+
+  timeList.forEach((hhmm) => {
+    const hh = hhmm.slice(0, 2), mm = hhmm.slice(2, 4);
+    const label = document.createElement('label');
+    label.className = 'slot-item';
+    label.innerHTML = `<input type="checkbox" value="${hhmm}" checked onchange="updateCount()"> <span>⏰ ${hh}:${mm}</span>`;
+    container.appendChild(label);
+  });
+  updateCount();
+
+  function addMinutes(year, month, day, hour, minute, addMins) {
+    const dt = new Date(year, month - 1, day, hour, minute + addMins, 0);
+    const yy = dt.getFullYear();
+    const mo = String(dt.getMonth() + 1).padStart(2, '0');
+    const dd = String(dt.getDate()).padStart(2, '0');
+    const hh = String(dt.getHours()).padStart(2, '0');
+    const mi = String(dt.getMinutes()).padStart(2, '0');
+    return `${yy}${mo}${dd}T${hh}${mi}00`;
+  }
+
+  function downloadIcs(usePlus10Offset) {
+    const checkedInputs = Array.from(container.querySelectorAll('input[type=checkbox]:checked'));
+    if (checkedInputs.length === 0) {
+      alert('최소 1개 이상의 알람 시간을 선택해 주세요.');
+      return;
+    }
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//SeoulOTAlert//MobileBatchAlarm//KO',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH'
+    ];
+    const baseY = parseInt(y, 10), baseM = parseInt(m, 10), baseD = parseInt(d, 10);
+    const firstHour = parseInt(checkedInputs[0].value.slice(0, 2), 10);
+
+    checkedInputs.forEach((inp, idx) => {
+      const hh = parseInt(inp.value.slice(0, 2), 10);
+      const mm = parseInt(inp.value.slice(2, 4), 10);
+      const dayOffset = (hh < firstHour && firstHour >= 18) ? 1 : 0;
+      const startOffsetMins = usePlus10Offset ? 10 : 0;
+      const dtStart = addMinutes(baseY, baseM, baseD + dayOffset, hh, mm, startOffsetMins);
+      const dtEnd = addMinutes(baseY, baseM, baseD + dayOffset, hh, mm, startOffsetMins + 10);
+      const timeLabel = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+      const uid = `seoul-ot-${dateStr}-${inp.value}-${idx}-${Date.now()}@ot-alert`;
+
+      lines.push('BEGIN:VEVENT');
+      lines.push(`UID:${uid}`);
+      lines.push(`SUMMARY:🔔 [${timeLabel} 알림] ${sysName} 초과근무 확인`);
+      lines.push(`DESCRIPTION:${sysName} 초과근무기록 확인 버튼을 눌러주세요. (${timeLabel})`);
+      lines.push(`DTSTART:${dtStart}`);
+      lines.push(`DTEND:${dtEnd}`);
+      lines.push('BEGIN:VALARM');
+      lines.push('ACTION:DISPLAY');
+      lines.push(`DESCRIPTION:🔔 [${timeLabel}] ${sysName} 초과근무 확인 시간입니다!`);
+      lines.push(usePlus10Offset ? 'TRIGGER:-PT10M' : 'TRIGGER:PT0S');
+      lines.push('END:VALARM');
+      lines.push('END:VEVENT');
+    });
+    lines.push('END:VCALENDAR');
+
+    const icsData = lines.join('\r\n');
+    const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `초과근무알림_${dateStr}_${checkedInputs.length}건.ics`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }
+</script>
+</body>
+</html>
